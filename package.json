@@ -19,6 +19,7 @@
   },
   "homepage": "https://github.com/0xUnavailable/pingme#readme",
   "dependencies": {
+    "dotenv": "^17.2.1",
     "express": "^5.1.0"
   }
 }

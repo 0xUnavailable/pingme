@@ -1,6 +1,7 @@
 const express = require('express');
 const https = require('https');
 const { URL } = require('url');
+require('dotenv').config();
 
 // Initialize Express app
 const app = express();
@@ -10,7 +11,7 @@ const port = process.env.PORT;
 const pingUrl = process.env.PING_URL;
 const timerSeconds = parseInt(process.env.PING_TIMER);
 
-function pingUrl(url) {
+function ping(url) {
     return new Promise((resolve, reject) => {
         const parsedUrl = new URL(url);
         const options = {
@@ -20,7 +21,6 @@ function pingUrl(url) {
         };
 
         const req = https.request(options, (res) => {
-            console.log(`Ping to ${parsedUrl.hostname} - Status: ${res.statusCode}`);
             resolve({ status: res.statusCode, hostname: parsedUrl.hostname });
         });
 
@@ -33,12 +33,25 @@ function pingUrl(url) {
     });
 }
 
-// Endpoint to trigger ping
+// Function to continuously ping at intervals
+async function continuousPing() {
+    while (true) {
+        console.log(`Waiting for ${timerSeconds} seconds before pinging ${pingUrl}`);
+        await new Promise(resolve => setTimeout(resolve, timerSeconds * 1000));
+        try {
+            const result = await ping(pingUrl);
+            console.log(`Ping successful - Status: ${result.statusCode}`);
+        } catch (error) {
+            console.error(`Ping failed: ${error.message}`);
+        }
+    }
+}
+
+// Endpoint to trigger a single ping
 app.get('/ping', async (req, res) => {
-    console.log(`Waiting for ${timerSeconds} seconds before pinging ${pingUrl}`);
     await new Promise(resolve => setTimeout(resolve, timerSeconds * 1000));
     try {
-        const result = await pingUrl(pingUrl);
+        const result = await ping(pingUrl);
         res.json({
             message: `Ping to ${result.hostname} successful`,
             status: result.statusCode
@@ -50,6 +63,9 @@ app.get('/ping', async (req, res) => {
         });
     }
 });
+
+// Start continuous ping when server starts
+continuousPing().catch(err => console.error('Continuous ping error:', err));
 
 // Start server
 app.listen(port, () => {
